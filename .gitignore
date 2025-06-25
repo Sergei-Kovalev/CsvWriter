@@ -5,6 +5,7 @@ target/
 !**/src/test/**/target/
 
 ### IntelliJ IDEA ###
+.gradle
 .idea
 *.iws
 *.iml
