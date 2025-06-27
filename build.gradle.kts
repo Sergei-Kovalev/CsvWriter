@@ -1,6 +1,7 @@
 plugins {
     `java-library`
     `maven-publish`
+    id("org.sonarqube") version "6.2.0.5505"
 }
 
 repositories {
@@ -10,16 +11,23 @@ repositories {
     }
 }
 
+val datafakerVersion = "2.4.3"
+val jupiterVersion = "5.8.1"
+val lombokVersion = "1.18.34"
+
 dependencies {
-    api("net.datafaker:datafaker:2.4.3")
-    testImplementation("org.junit.jupiter:junit-jupiter:5.8.1")
-    compileOnly("org.projectlombok:lombok:1.18.34")
+    api("net.datafaker:datafaker:${datafakerVersion}")
+    testImplementation("org.junit.jupiter:junit-jupiter:${jupiterVersion}")
+    compileOnly("org.projectlombok:lombok:${lombokVersion}")
+    annotationProcessor("org.projectlombok:lombok:${lombokVersion}")
+    testCompileOnly("org.projectlombok:lombok:${lombokVersion}")
+    testAnnotationProcessor("org.projectlombok:lombok:${lombokVersion}")
 }
 
 group = "org.writer"
 version = "1.0-SNAPSHOT"
 description = "csv"
-java.sourceCompatibility = JavaVersion.VERSION_1_8
+java.sourceCompatibility = JavaVersion.VERSION_17
 
 publishing {
     publications.create<MavenPublication>("maven") {

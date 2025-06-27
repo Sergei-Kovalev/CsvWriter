@@ -17,6 +17,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 /**
@@ -42,6 +43,8 @@ public class CsvWriter implements Writable {
     public static final String DELIMITER_BETWEEN_KEY_VALUE = "=";
     public static final String DELIMITER_BETWEEN_LINES = ";";
 
+    private final Logger logger = Logger.getLogger(this.getClass().getName());
+
     /**
      * Записывает переданные данные в CSV-файл с указанным именем.
      * <p>
@@ -58,7 +61,7 @@ public class CsvWriter implements Writable {
             String dataString = getDataString(data, fileName);
             saveDataStringToFile(dataString, fileName);
         } catch (ClassNotForWriteException e) {
-            System.err.println(e.getMessage());
+            logger.warning(e.getMessage());
         }
     }
 
@@ -102,7 +105,7 @@ public class CsvWriter implements Writable {
      */
     private void saveDataStringToFile(String dataString, String fileName) {
         if (fileName == null || fileName.isBlank()) {
-            System.err.println(EMPTY_FILE_NAME);
+            logger.warning(EMPTY_FILE_NAME);
             return;
         }
         Path outputDir = Paths.get(FILE_DIR);
@@ -111,7 +114,7 @@ public class CsvWriter implements Writable {
             Path outputFile = outputDir.resolve(fileName + FILE_TYPE);
             Files.writeString(outputFile, dataString, StandardCharsets.UTF_8);
         } catch (IOException e) {
-            System.err.println("Ошибка при записи в файл: " + e.getMessage());
+            logger.warning("Ошибка при записи в файл: " + e.getMessage());
         }
     }
 
@@ -138,31 +141,7 @@ public class CsvWriter implements Writable {
                 fields[i].setAccessible(true);
                 try {
                     Object value = fields[i].get(obj);
-                    if (value == null) {
-                        sb.append(EMPTY_ELEMENT);
-                    } else if (value instanceof Collection<?> collection) {
-                        String formattedCollection = collection.stream()
-                                .map(element -> element != null ? element.toString() : EMPTY_ELEMENT)
-                                .collect(Collectors.joining(DELIMITER_FOR_ELEMENTS_IN_FIELD));
-                        sb.append(SURROUND_FORMATTED_ELEMENTS).append(formattedCollection).append(SURROUND_FORMATTED_ELEMENTS);
-                    } else if (value.getClass().isArray()) {
-                        int length = Array.getLength(value);
-                        List<String> elements = new ArrayList<>();
-                        for (int j = 0; j < length; j++) {
-                            Object element = Array.get(value, j);
-                            elements.add(element != null ? element.toString() : EMPTY_ELEMENT);
-                        }
-                        String formattedArray = String.join(DELIMITER_FOR_ELEMENTS_IN_FIELD, elements);
-                        sb.append(SURROUND_FORMATTED_ELEMENTS).append(formattedArray).append(SURROUND_FORMATTED_ELEMENTS);
-                    } else if (value instanceof Map<?, ?> map) {
-                        String formattedMap = map.entrySet().stream()
-                                .map(entry -> entry.getKey() + DELIMITER_BETWEEN_KEY_VALUE +
-                                        (entry.getValue() != null ? entry.getValue().toString() : EMPTY_ELEMENT))
-                                .collect(Collectors.joining(DELIMITER_FOR_ELEMENTS_IN_FIELD));
-                        sb.append(SURROUND_FORMATTED_ELEMENTS).append(formattedMap).append(SURROUND_FORMATTED_ELEMENTS);
-                    } else {
-                        sb.append(value);
-                    }
+                    readFieldAccordingType(sb, value);
                 } catch (IllegalAccessException e) {
                     sb.append("Невозможно прочитать поле");
                 }
@@ -172,6 +151,46 @@ public class CsvWriter implements Writable {
             }
             sb.append("\n");
         }
+    }
+
+    private static void readFieldAccordingType(StringBuilder sb, Object value) {
+        if (value == null) {
+            sb.append(EMPTY_ELEMENT);
+        } else if (value instanceof Collection<?> collection) {
+            appendIfCollectionType(sb, collection);
+        } else if (value.getClass().isArray()) {
+            appendIfArrayType(sb, value);
+        } else if (value instanceof Map<?, ?> map) {
+            appendIfMapType(sb, map);
+        } else {
+            sb.append(value);
+        }
+    }
+
+    private static void appendIfMapType(StringBuilder sb, Map<?, ?> map) {
+        String formattedMap = map.entrySet().stream()
+                .map(entry -> entry.getKey() + DELIMITER_BETWEEN_KEY_VALUE +
+                        (entry.getValue() != null ? entry.getValue().toString() : EMPTY_ELEMENT))
+                .collect(Collectors.joining(DELIMITER_FOR_ELEMENTS_IN_FIELD));
+        sb.append(SURROUND_FORMATTED_ELEMENTS).append(formattedMap).append(SURROUND_FORMATTED_ELEMENTS);
+    }
+
+    private static void appendIfArrayType(StringBuilder sb, Object value) {
+        int length = Array.getLength(value);
+        List<String> elements = new ArrayList<>();
+        for (int j = 0; j < length; j++) {
+            Object element = Array.get(value, j);
+            elements.add(element != null ? element.toString() : EMPTY_ELEMENT);
+        }
+        String formattedArray = String.join(DELIMITER_FOR_ELEMENTS_IN_FIELD, elements);
+        sb.append(SURROUND_FORMATTED_ELEMENTS).append(formattedArray).append(SURROUND_FORMATTED_ELEMENTS);
+    }
+
+    private static void appendIfCollectionType(StringBuilder sb, Collection<?> collection) {
+        String formattedCollection = collection.stream()
+                .map(element -> element != null ? element.toString() : EMPTY_ELEMENT)
+                .collect(Collectors.joining(DELIMITER_FOR_ELEMENTS_IN_FIELD));
+        sb.append(SURROUND_FORMATTED_ELEMENTS).append(formattedCollection).append(SURROUND_FORMATTED_ELEMENTS);
     }
 
     /**
