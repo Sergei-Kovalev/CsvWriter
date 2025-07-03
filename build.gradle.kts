@@ -17,9 +17,10 @@ val lombokVersion = "1.18.34"
 
 dependencies {
     api("net.datafaker:datafaker:${datafakerVersion}")
-    testImplementation("org.junit.jupiter:junit-jupiter:${jupiterVersion}")
     compileOnly("org.projectlombok:lombok:${lombokVersion}")
     annotationProcessor("org.projectlombok:lombok:${lombokVersion}")
+
+    testImplementation("org.junit.jupiter:junit-jupiter:${jupiterVersion}")
     testCompileOnly("org.projectlombok:lombok:${lombokVersion}")
     testAnnotationProcessor("org.projectlombok:lombok:${lombokVersion}")
 }
